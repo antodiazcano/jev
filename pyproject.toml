@@ -1,7 +1,7 @@
 [project]
-name = "template-project"
+name = "wikipedia-speedrun-jev"
 version = "0.1.0"
-description = "Add your description here"
+description = "Wikipedia speedrun as an excuse to try Jev."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
@@ -14,8 +14,6 @@ dev = [
     "flake8>=7.3.0",
     "flake8-pyproject>=1.2.4",
     "isort>=8.0.1",
-    "mkdocs>=1.6.1",
-    "mkdocs-material>=9.7.6",
     "mypy>=2.1.0",
     "pylint>=4.0.5",
     "pytest>=9.0.3",
