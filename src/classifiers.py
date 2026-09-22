@@ -1,9 +1,10 @@
 """Script to define the possible classifiers."""
 
+import random
 from abc import ABC, abstractmethod
 
 from dotenv import load_dotenv
-from groq import Groq
+from openai import OpenAI
 from typesafe_sdk import Choice, TypeSafeClient
 
 
@@ -18,10 +19,22 @@ class LinkClassifier(ABC):
             target: Target page.
         """
 
+        load_dotenv()
+
         self.start = start
         self.target = target
 
     @abstractmethod
+    def _select_from_batch(self, links: list[str]) -> str:
+        """Selects the most promising link of the batch for the target.
+
+        Args:
+            Links of the batch.
+
+        Returns:
+            Most promising link of the batch.
+        """
+
     def select_link(self, links: list[str]) -> str:
         """Selects the most promising link for the target.
 
@@ -31,6 +44,18 @@ class LinkClassifier(ABC):
         Returns:
             Most promising link.
         """
+
+        n = len(links)
+        batch_size = 255
+
+        if n <= batch_size:
+            return self._select_from_batch(links)
+
+        winners = []
+        for i in range(0, n, batch_size):
+            winners.append(self._select_from_batch(links[i : min(n, i + batch_size)]))
+
+        return self.select_link(winners)
 
 
 class JevLinkClassifier(LinkClassifier):
@@ -46,77 +71,56 @@ class JevLinkClassifier(LinkClassifier):
 
         super().__init__(start, target)
 
-        load_dotenv()
-        self.client = TypeSafeClient(model="jev-1.13.0")
+        self.client = TypeSafeClient(model="jev-latest")
 
-    def _get_prompt(self) -> str:
-        """Obtains the prompt for the model.
-
-        Returns:
-            Prompt the model will use.
-        """
-
-        return (
-            f"You are doing a Wikipedia Speedrun. The initial page was {self.start}, "
-            f"and the target page is {self.target}. Which of the following pages is "
-            "the most promising one to arrive to the target?"
-        )
-
-    def select_link(self, links: list[str]) -> str:
-        """Selects the most promising link for the target.
+    def _select_from_batch(self, links: list[str]) -> str:
+        """Selects the most promising link of the batch for the target.
 
         Args:
-            Possible links to choose.
+            Links of the batch.
 
         Returns:
-            Most promising link.
+            Most promising link of the batch.
         """
 
-        state = (
-            f"You are doing a Wikipedia Speedrun. The initial page was {self.start}, "
-            f"and the target page is {self.target}."
-        )
+        state = {"initial_page": self.start, "target_page": self.target}
         instructions = (
-            "Which of the following pages is the most promising one to arrive to the "
-            "target?"
+            "You are doing a Wikipedia Speedrun. Which of the following pages is the "
+            "most promising one to arrive to the target?"
         )
-        question = Choice(instructions=instructions, criteria={})
+        criteria = {link: None for link in links}
 
+        question = Choice(instructions=instructions, criteria=criteria)
         response = self.client.system_one(state=state, questions={"page": question})
 
-        return str(response.choices["page"])
+        return response.choices["page"].choice
 
 
-class GroqLinkClassifier(LinkClassifier):
-    """Link classifier with Groq."""
+class OpenAILinkClassifier(LinkClassifier):
+    """Link classifier with OpenAI."""
 
-    def __init__(
-        self, start: str, target: str, model: str = "openai/gpt-oss-120b"
-    ) -> None:
+    def __init__(self, start: str, target: str, model: str = "gpt-4.1-mini") -> None:
         """Constructor of the class.
 
         Args:
             start: Starting page.
             target: Target page.
+            model: OpenAI model.
         """
 
         super().__init__(start, target)
 
-        load_dotenv()
-        self.client = Groq()
+        self.client = OpenAI()
         self.model = model
 
-    def select_link(self, links: list[str]) -> str:
-        """Selects the most promising link for the target.
+    def _select_from_batch(self, links: list[str]) -> str:
+        """Selects the most promising link of the batch for the target.
 
         Args:
-            Possible links to choose.
+            links: Links of the batch.
 
         Returns:
-            Most promising link.
-
-        Raises:
-            ValueError: If there was an error processing the request.
+            Most promising link of the batch.
         """
 
         prompt = (
@@ -136,7 +140,8 @@ class GroqLinkClassifier(LinkClassifier):
             .message.content
         )
 
-        if response is None:
-            raise RuntimeError("There was an error processing the request!")
+        if (response is None) or (response not in links):
+            print("The model hallucinated!")
+            return random.choice(links)
 
         return response

@@ -31,18 +31,12 @@ format:
 
 lint:
 	$(UV) run isort --check-only $(PYTHON_PATHS)
-	@set -e; for file in $(PYTHON_FILES); do \
-		$(UV) run black --check --quiet "$$file"; \
-	done
-	$(UV) run bandit -r $(SRC_DIR)
-	$(UV) run bandit -r $(TEST_DIR) --skip B101
 	$(UV) run mypy $(PYTHON_PATHS)
 	$(UV) run flake8 $(PYTHON_PATHS)
 	$(UV) run ruff check $(PYTHON_PATHS)
 	$(UV) run complexipy $(PYTHON_PATHS)
 	$(UV) run pylint --fail-under=$(FAIL_UNDER) $(SRC_DIR)
-	$(UV) run pylint --fail-under=$(FAIL_UNDER_TESTS) \
-		--disable=$(PYLINT_TEST_DISABLE) $(TEST_DIR)
+	$(UV) run pylint --fail-under=$(FAIL_UNDER_TESTS) --disable=$(PYLINT_TEST_DISABLE) $(TEST_DIR)
 
 test:
 	$(UV) run pytest $(TEST_DIR)

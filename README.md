@@ -1,49 +1,85 @@
-explicación teórica con dibujos: A System One model evaluates a state and returns typed answers and probabilities.
+# Wikipedia Speedrun with Jev
 
-types of questions: choice (clasificación), score (regresión), noul (clasificación binaria)
+A small Python project that races from one Wikipedia article to another by
+following only links found on each page. At every step, an AI classifier chooses
+the link that looks most promising.
 
-explicar la diferencia con un clasificador/regresor fijo
+The project compares two classifiers:
 
-El nombre hace referencia al economista William Stanley Jevons — la idea es que a medida que el costo de una decisión baja, la demanda de decisiones explota.
+- **Jev**, using TypeSafe's `Choice` primitive.
+- **OpenAI**, using `gpt-4.1-mini` by default.
 
-las responde todas en un único paso paralelo, no es secuencial
-unlike traditional LLMs, Jev is neither constrained by text generation or sequential decision making!
+## How it works
 
-sin embargo, jev no sustituye a los llms, por ejemplo para un chatbot asistente o un agente de código
+1. Fetch all valid Wikipedia article links from the current page.
+2. Remove pages that have already been visited.
+3. Ask the selected classifier to choose the best next link.
+4. Repeat until the target is reached or the attempt limit is exhausted.
 
-cuán faster y cheaper es
+Jev accepts up to 255 choices per request, so larger link collections are split
+into batches and their winners are compared recursively.
 
-ejemplo
-answer
+## Setup
+
+The project requires Python 3.12 or newer and [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv sync
+cp .env.example .env
+```
+
+Add your API keys to `.env`:
+
+```dotenv
+TYPESAFE_API_KEY=your-typesafe-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+## Run the race
+
+Choose the starting and target pages in `src/main.py`, then run:
+
+```bash
+uv run python -m src.main
+```
+
+The script runs both classifiers and prints every visited page. Each result is
+saved as JSON in `results/`, including whether the target was reached, the number
+of attempts, elapsed time, and the complete route.
+
+Example:
+
+```json
 {
-  "model": "jev-latest",
-  "state": "Hi, I've been trying to connect my Stripe account for 3 days and it keeps failing. I'm losing sales. Please help ASAP.",
-  "questions": {
-    "is_urgent": {
-      "type": "noul",
-      "instructions": "The message conveys urgency or time-sensitivity"
-    }
-  }
+    "target_reached": true,
+    "attempts": 39,
+    "time_elapsed": 53.566,
+    "visited_links": ["Cristiano Ronaldo", "...", "Joe Elliott"]
 }
-response
-{
-  "is_urgent": {
-    "type": "noul",
-    "noul": 0.999
-  }
-}
+```
 
-reinforcement learning for calibrated decisions (RLCD)
-optimiza sus probabilidades frente a resultados en lugar de preferencias humanas (LLMs, RLHF).
-RLHF optimizes for sounding right to a person, while RLCD optimizes for being right
-llms tend to be overconfident, jev is calibrated: higher confidence means higher accuracy. a decision tagged 90% confidence should actually be correct around 90% of the time
-El benchmark también usa el promedio de GPT-6 Astra y Fable 5.1 como referencia "correcta", lo que introduce un sesgo hacia esos modelos. mirar mejor esto. lo usan como etiquetas de entrenamiento o de test?
+## Tests
 
-https://typesafe.ai/blog/introducing-system-one-models-and-jev
-primer gif vs llm normal
-accuracy vs cost figure
-tool call error figure: The numbers for LLMs are from OpenRouter i.e., there almost certainly is bias here: more complex queries might be routed to better models.
+```bash
+make test
+```
 
-casos de uso: tool calling, structured outputs, llm evals, el juego de shooter y wiki racing...
+Run the complete test and quality suite with:
 
-decir que para ciertas tareas puede ser mejor entrenar un clasificador ad-hoc. jev da más flexibilidad y es más general
+```bash
+make check
+```
+
+## Project structure
+
+```text
+src/classifiers.py       AI link classifiers and batching logic
+src/wiki_speedrun.py     Wikipedia traversal and result storage
+src/main.py              Example race configuration
+tests/                   Unit tests
+results/                 Saved race results
+```
+
+## License
+
+This project is released under the [MIT License](LICENSE).
