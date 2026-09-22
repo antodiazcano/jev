@@ -45,3 +45,5 @@ accuracy vs cost figure
 tool call error figure: The numbers for LLMs are from OpenRouter i.e., there almost certainly is bias here: more complex queries might be routed to better models.
 
 casos de uso: tool calling, structured outputs, llm evals, el juego de shooter y wiki racing...
+
+decir que para ciertas tareas puede ser mejor entrenar un clasificador ad-hoc. jev da más flexibilidad y es más general

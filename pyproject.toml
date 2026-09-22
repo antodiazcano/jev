@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Wikipedia speedrun as an excuse to try Jev."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "dotenv>=0.9.9",
+    "groq>=1.7.0",
+    "ipykernel>=7.3.0",
+    "typesafe-sdk>=0.7.1",
+]
 
 [dependency-groups]
 dev = [
